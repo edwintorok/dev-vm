@@ -6,7 +6,10 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure("2") do |config|
-  config.vm.box = "boxcutter/ubuntu1604-desktop"
+  config.vm.box = "ubuntu/xenial64"
+  # Need to install the disksize plugin:
+  # vagrant plugin install vagrant-disksize
+  # config.disksize.size = '50GB'
 
   config.ssh.forward_x11 = true
 
@@ -26,39 +29,19 @@ Vagrant.configure("2") do |config|
 # Get the VM up-to-date
     sudo apt-get update
 
-# Install go tools
-    sudo apt-get install git
-    wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz --quiet
-    sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    mkdir ~/go
-    export PATH=$PATH:~/go/bin
-    go get github.com/mitchellh/gox
-    go get github.com/hashicorp/packer
-    go get github.com/mitchellh/go-vnc
+# Desktop
+    sudo apt-get install -y xauth xorg openbox lightdm plymouth
+    sudo apt-get install -y ubuntu-desktop
 
-# Packer-builder-xenserver
-    mkdir -p ~/go/src/github.com/xenserver/
-    cd ~/go/src/github.com/xenserver/
-    git clone https://github.com/xenserver/packer-builder-xenserver.git
-    cd packer-builder-xenserver
-    ./build.sh
-
-# Install opam and dependencies for compiling xapi
-    sudo apt-get install -y opam m4 libxen-dev
-    opam init -a --compiler=4.02.3 -y
-    eval `opam config env`
+# Install opam
+    sudo apt-get install -y m4 libxen-dev
+    # Install opam 2:
+    sudo curl -sL https://github.com/ocaml/opam/releases/download/2.0.1/opam-2.0.1-x86_64-linux --output /usr/local/bin/opam
+    sudo chmod +x /usr/local/bin/opam
+    opam init --disable-sandboxing --auto-setup --compiler=4.06.1 --yes
+    eval `opam env`
     opam remote add xs-opam git://github.com/xapi-project/xs-opam
-    opam install -y lwt_react depext camlp4
-    opam depext -y xapi
-    # due to constraints missing from old libraries, pinning the lwt package is necessary for certain configurations
-    opam pin add lwt 2.7.1
-    opam install --deps-only xapi
-
-# Verify xapi can be built
-    sudo apt-get install -y git
-    git clone git://github.com/xapi-project/xen-api
-    cd xen-api; ./configure; make; make test > test.log; cd ..
+    opam install -y opam-depext
 
 # Install OCaml development tools
     opam install -y merlin ocp-indent ocp-index ocp-browser utop
@@ -98,14 +81,6 @@ Vagrant.configure("2") do |config|
 
 # Fix gnome-terminal
     sudo localectl set-locale LANG="en_GB.utf8"
-
-# Install Docker - required by planex-buildenv
-    sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-    sudo apt-add-repository 'deb https://apt.dockerproject.org/repo ubuntu-xenial main'
-    sudo apt-get update
-    sudo apt-get install -y docker-engine
-    sudo usermod -aG docker vagrant
-
 
 # Reboot required to ensure locale and profile changes are picked up
 # We actually shut down because a `vagrant up` does some setting up.
